@@ -20,11 +20,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        let participantsHtml = '<div class="participants-section"><h5>Participants:</h5>';
+        if (details.participants.length > 0) {
+          participantsHtml += '<ul class="participants-list">';
+          details.participants.forEach(participant => {
+            participantsHtml += `<li><span>${participant}</span><button class="delete-btn" data-activity="${name}" data-email="${participant}">Remove</button></li>`;
+          });
+          participantsHtml += '</ul>';
+        } else {
+          participantsHtml += '<p class="no-participants">No participants yet</p>';
+        }
+        participantsHtml += '</div>';
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHtml}
         `;
 
         activitiesList.appendChild(activityCard);
@@ -62,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -78,6 +92,34 @@ document.addEventListener("DOMContentLoaded", () => {
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
+    }
+  });
+
+  // Handle participant deletion
+  document.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("delete-btn")) {
+      const activity = event.target.getAttribute("data-activity");
+      const email = event.target.getAttribute("data-email");
+
+      if (confirm(`Remove ${email} from ${activity}?`)) {
+        try {
+          const response = await fetch(
+            `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+            {
+              method: "POST",
+            }
+          );
+
+          if (response.ok) {
+            fetchActivities();
+          } else {
+            alert("Failed to remove participant. Please try again.");
+          }
+        } catch (error) {
+          alert("Error removing participant.");
+          console.error("Error removing participant:", error);
+        }
+      }
     }
   });
 
